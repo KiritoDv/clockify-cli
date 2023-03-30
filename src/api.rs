@@ -1,13 +1,17 @@
 use crate::{
+    cfg::ConfigManager,
     utils::{clear_screen, cursor, parse_duration, read},
-    API, CONFIG
 };
 use chrono::NaiveTime;
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
-pub struct ClockifyCLI;
+pub struct ClockifyCLI {
+    pub api: Clockify,
+}
 
-pub struct Clockify;
+pub struct Clockify {
+    pub manager: ConfigManager,
+}
 #[derive(Deserialize, Clone, Debug)]
 pub struct User {
     pub id: String,
@@ -68,9 +72,7 @@ pub struct TaskRequest {
 impl Clockify {
     pub fn gen_auth_headers(&self) -> HeaderMap {
         let mut headers = HeaderMap::new();
-        let mgr = CONFIG.lock().unwrap();
-        let config = mgr.config.as_ref().unwrap();
-        let api_key = &config.api_key;
+        let api_key = &self.manager.config.as_ref().unwrap().api_key;
         headers.insert("X-Api-Key", api_key.parse().unwrap());
         headers
     }
@@ -177,8 +179,6 @@ impl Clockify {
 
     pub async fn new_task(&self, workspace: &Workspace, request: TaskRequest) -> Option<bool> {
         let client = reqwest::Client::new();
-        let body = serde_json::to_string(&request).unwrap();
-        print!("Body: {}", body);
         let result = client
             .post(format!(
                 "https://global.api.clockify.me/workspaces/{}/timeEntries/full",
@@ -210,8 +210,8 @@ impl Clockify {
 }
 
 impl ClockifyCLI {
-    pub async fn select_workspace() -> Option<Workspace> {
-        let workspaces = API.get_workspaces().await;
+    pub async fn select_workspace(&self) -> Option<Workspace> {
+        let workspaces = self.api.get_workspaces().await;
         if workspaces.is_none() {
             println!("No Workspaces found");
             return None;
@@ -240,8 +240,8 @@ impl ClockifyCLI {
         }
     }
 
-    pub async fn select_project(workspace: &Workspace) -> Option<Project> {
-        let projects = API.get_projects(workspace).await;
+    pub async fn select_project(&self, workspace: &Workspace) -> Option<Project> {
+        let projects = self.api.get_projects(workspace).await;
         if projects.is_none() {
             println!("No projects found");
             return None;
@@ -271,8 +271,8 @@ impl ClockifyCLI {
         }
     }
 
-    pub async fn select_task(workspace: &Workspace) -> Option<Task> {
-        let entries = API.get_tasks(workspace).await;
+    pub async fn select_task(&self, workspace: &Workspace) -> Option<Task> {
+        let entries = self.api.get_tasks(workspace).await;
         if entries.is_none() {
             println!("No projects found");
             return None;
@@ -306,9 +306,9 @@ impl ClockifyCLI {
         }
     }
 
-    pub async fn select_tags(workspace: &Workspace) -> Option<Vec<Tag>> {
+    pub async fn select_tags(&self, workspace: &Workspace) -> Option<Vec<Tag>> {
         let mut selected_tags: Vec<Tag> = Vec::new();
-        let tags = API.get_tags(workspace).await;
+        let tags = self.api.get_tags(workspace).await;
         if tags.is_none() {
             println!("No tags found");
             return None;

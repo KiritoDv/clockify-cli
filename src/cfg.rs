@@ -15,10 +15,7 @@ pub struct Config {
 impl ConfigManager {
     pub fn validate(&self) -> bool {
         let exists = fs::try_exists("Config.toml");
-        if exists.is_err() || !exists.unwrap() {
-            return false;
-        }
-        return true;
+        exists.is_ok() && exists.unwrap()
     }
     pub fn load(&mut self) {
         let exists = self.validate();

@@ -1,7 +1,4 @@
-use crate::{
-    utils::clear_screen,
-    API, CONFIG,
-};
+use crate::{api::ClockifyCLI, utils::clear_screen};
 use clap::{Parser, Subcommand};
 
 /// Configure the authentication token
@@ -21,22 +18,21 @@ pub enum ConfigSubCommand {
 }
 
 impl ConfigCommand {
-    pub async fn run(&self) {
+    pub async fn run(&self, cli: &mut ClockifyCLI) {
+        let api = &mut cli.api;
+        let mgr = &mut api.manager.config;
         match &self.command {
             ConfigSubCommand::Login { api_key } => {
-                let mut mgr = CONFIG.lock().unwrap();
-                let config = mgr.config.as_mut().unwrap();
-                config.api_key = api_key.clone();
-                drop(mgr);
-                let user = API.get_user().await;
+                mgr.as_mut().unwrap().api_key = api_key.clone();
+                let user = api.get_user().await;
                 if user.is_none() {
                     println!("Invalid API key");
                     return;
                 }
                 clear_screen();
                 println!("Logged in successfully");
-                CONFIG.lock().unwrap().save();
-            },
+                api.manager.save();
+            }
         }
     }
 }

@@ -1,23 +1,15 @@
 #![feature(fs_try_exists)]
-use std::sync::{Arc, Mutex};
-
-use api::Clockify;
+use api::{Clockify, ClockifyCLI};
 use cfg::ConfigManager;
 use clap::Parser;
-use lazy_static::lazy_static;
-use commands::{projects::ProjectsCommand, tags::TagsCommand, task::TaskCommand, config::ConfigCommand};
+use commands::{
+    config::ConfigCommand, projects::ProjectsCommand, tags::TagsCommand, task::TaskCommand,
+};
 
 pub mod api;
 pub mod cfg;
 pub mod commands;
 pub mod utils;
-
-pub const API: Clockify = Clockify;
-lazy_static! {
-    pub static ref CONFIG: Arc<Mutex<ConfigManager>> = Arc::new(Mutex::new(ConfigManager {
-        config: None,
-    }));
-}
 
 #[derive(Debug, Parser)]
 #[clap(name = "clockify", version)]
@@ -33,12 +25,15 @@ pub enum App {
 
 #[tokio::main]
 async fn main() {
-    CONFIG.lock().unwrap().load();
+    let mut mgr = ConfigManager { config: None };
+    mgr.load();
+    let api = Clockify { manager: mgr };
+    let mut cli = ClockifyCLI { api };
     let args = App::parse();
     match args {
-        App::Config(config) => config.run().await,
-        App::Task(task) => task.run().await,
-        App::Tags(tags) => tags.run().await,
-        App::Projects(projects) => projects.run().await,
+        App::Config(config) => config.run(&mut cli).await,
+        App::Task(task) => task.run(&cli).await,
+        App::Tags(tags) => tags.run(&cli).await,
+        App::Projects(projects) => projects.run(&cli).await,
     }
 }

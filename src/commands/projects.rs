@@ -1,15 +1,19 @@
 use clap::Parser;
 
-use crate::{api::ClockifyCLI, utils::{parse_duration, clear_screen}, API};
+use crate::{
+    api::ClockifyCLI,
+    utils::{clear_screen, parse_duration},
+};
 
 /// List all clockify tags which are available to the user
 #[derive(Debug, Parser)]
 pub struct ProjectsCommand;
 
 impl ProjectsCommand {
-    pub async fn run(&self) {
-        let workspace = ClockifyCLI::select_workspace().await.unwrap();
-        let projects = API.get_projects(&workspace).await;
+    pub async fn run(&self, cli: &ClockifyCLI) {
+        let api = &cli.api;
+        let workspace = cli.select_workspace().await.unwrap();
+        let projects = api.get_projects(&workspace).await;
         if projects.is_none() {
             println!("No projects found");
             return;

@@ -1,7 +1,6 @@
 use crate::{
     api::{ClockifyCLI, TaskRequest},
     utils::{clear_screen, date, parse_duration},
-    API,
 };
 use chrono::SecondsFormat;
 use clap::{Parser, Subcommand};
@@ -23,12 +22,13 @@ pub enum AddSubCommand {
 }
 
 impl TaskCommand {
-    pub async fn run(&self) {
+    pub async fn run(&self, cli: &ClockifyCLI) {
+        let api = &cli.api;
         match &self.command {
             AddSubCommand::Add => {
-                let workspace = ClockifyCLI::select_workspace().await.unwrap();
-                let project = ClockifyCLI::select_project(&workspace).await;
-                let tags = ClockifyCLI::select_tags(&workspace).await;
+                let workspace = cli.select_workspace().await.unwrap();
+                let project = cli.select_project(&workspace).await;
+                let tags = cli.select_tags(&workspace).await;
                 let description = ClockifyCLI::select_description().await;
                 let start = ClockifyCLI::select_time(None).await;
                 let end = ClockifyCLI::select_time(start).await;
@@ -42,17 +42,17 @@ impl TaskCommand {
                     tag_ids: tags.unwrap().iter().map(|tag| tag.id.clone()).collect(),
                     custom_fields: Vec::new(),
                 };
-                let task = API.new_task(&workspace, request).await;
+                let task = api.new_task(&workspace, request).await;
                 if task.is_none() || !task.as_ref().unwrap() {
                     println!("Failed to create task");
                     return;
                 }
                 println!("Task created successfully");
-            },
+            }
             AddSubCommand::Delete => {
-                let workspace = ClockifyCLI::select_workspace().await.unwrap();
-                let task = ClockifyCLI::select_task(&workspace).await.unwrap();
-                let task = API.delete_task(&workspace, &task).await;
+                let workspace = cli.select_workspace().await.unwrap();
+                let task = cli.select_task(&workspace).await.unwrap();
+                let task = api.delete_task(&workspace, &task).await;
                 if task.is_none() || !task.as_ref().unwrap() {
                     println!("Failed to delete task");
                     return;
@@ -60,8 +60,8 @@ impl TaskCommand {
                 println!("Task deleted successfully");
             }
             AddSubCommand::List => {
-                let workspace = ClockifyCLI::select_workspace().await.unwrap();
-                let tasks = API.get_tasks(&workspace).await;
+                let workspace = cli.select_workspace().await.unwrap();
+                let tasks = api.get_tasks(&workspace).await;
                 if tasks.is_none() {
                     println!("No tasks found");
                     return;
