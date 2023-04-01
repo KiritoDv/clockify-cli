@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, NaiveDateTime, NaiveTime, Offset, TimeZone, Utc};
+use chrono::{DateTime, Local, NaiveDateTime, NaiveTime, Offset, TimeZone, Utc, NaiveDate};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{
@@ -57,7 +57,9 @@ pub(crate) fn parse_duration(duration: &str) -> String {
 }
 
 pub(crate) fn clear_screen() {
-    print!("{esc}c", esc = 27 as char);
+    let mut stdout = io::stdout();
+    write!(stdout, "{esc}c", esc = 27 as char).unwrap();
+    stdout.flush().unwrap()
 }
 
 pub(crate) fn cursor() {
@@ -79,6 +81,13 @@ pub(crate) fn date(time: NaiveTime) -> DateTime<Utc> {
     let now = Utc::now();
     let local = Local.timestamp_opt(0, 0).unwrap().offset().fix();
     let date = NaiveDateTime::new(now.date_naive(), time);
+    let date = local.from_local_datetime(&date).unwrap();
+    date.with_timezone(&Utc)
+}
+
+pub(crate) fn datetime(date: NaiveDate, time: NaiveTime) -> DateTime<Utc> {
+    let local = Local.timestamp_opt(0, 0).unwrap().offset().fix();
+    let date = NaiveDateTime::new(date, time);
     let date = local.from_local_datetime(&date).unwrap();
     date.with_timezone(&Utc)
 }
