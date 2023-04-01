@@ -53,7 +53,7 @@ pub struct Task {
     pub time: TaskInterval,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TaskRequest {
     pub start: String,
     pub billable: bool,
@@ -177,7 +177,7 @@ impl Clockify {
         Some(result.unwrap())
     }
 
-    pub async fn new_task(&self, workspace: &Workspace, request: TaskRequest) -> Option<bool> {
+    pub async fn new_task(&self, workspace: &Workspace, request: &TaskRequest) -> Option<bool> {
         let client = reqwest::Client::new();
         let result = client
             .post(format!(
@@ -282,7 +282,7 @@ impl ClockifyCLI {
 
         loop {
             clear_screen();
-            println!("Select a time entry:\n");
+            println!("Select a task:\n");
             for (idx, entry) in entries.as_ref().unwrap().iter().enumerate() {
                 println!(
                     "[{}] {} [{}]",
@@ -350,14 +350,14 @@ impl ClockifyCLI {
         }
     }
 
-    pub async fn select_description() -> Option<String> {
-        let mut selected_description = String::new();
+    pub async fn select_text_opt(text: &str, default: Option<&str>) -> Option<String> {
+        let mut selected_text = default.unwrap_or("").to_string();
         loop {
             clear_screen();
-            if selected_description.is_empty() {
-                println!("Enter a description:\n");
+            if selected_text.is_empty() {
+                println!("{}:\n", text);
             } else {
-                println!("Enter a description [{}]:\n", selected_description);
+                println!("{} [{}]:\n", text, selected_text);
             }
             println!("[0] Continue");
             cursor();
@@ -368,10 +368,14 @@ impl ClockifyCLI {
             }
             let description = data.unwrap();
             if description == "0" {
-                return Some(selected_description);
+                return Some(selected_text);
             }
-            selected_description = description;
+            selected_text = description;
         }
+    }
+
+    pub async fn select_text(text: &str) -> Option<String> {
+        return Self::select_text_opt(text, None).await;
     }
 
     pub async fn select_time(start: Option<NaiveTime>) -> Option<NaiveTime> {
@@ -411,6 +415,32 @@ impl ClockifyCLI {
                 continue;
             }
             selected_time = Some(time.unwrap());
+        }
+    }
+    pub fn select_bool(text: &str) -> bool {
+        let mut status: bool = false;
+        loop {
+            clear_screen();
+            println!("{} (y/n): {}\n", text, if status { "Yes" } else { "No" });
+            println!("[0] Continue");
+            cursor();
+            let data = read::<String>();
+            if data.is_none() {
+                println!("Invalid input");
+                continue;
+            }
+            let description = data.unwrap();
+            if description == "0" {
+                return status;
+            }
+            if description == "y" {
+                status = true;
+                continue;
+            }
+            if description == "n" {
+                status = false;
+                continue;
+            }
         }
     }
 }

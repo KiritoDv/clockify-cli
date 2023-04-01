@@ -1,4 +1,4 @@
-use crate::{api::ClockifyCLI, utils::clear_screen};
+use crate::{api::{ClockifyCLI}, utils::clear_screen};
 use clap::{Parser, Subcommand};
 
 /// Configure the authentication token

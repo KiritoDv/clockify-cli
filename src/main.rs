@@ -32,7 +32,7 @@ async fn main() {
     let args = App::parse();
     match args {
         App::Config(config) => config.run(&mut cli).await,
-        App::Task(task) => task.run(&cli).await,
+        App::Task(task) => task.run(&mut cli).await,
         App::Tags(tags) => tags.run(&cli).await,
         App::Projects(projects) => projects.run(&cli).await,
     }
